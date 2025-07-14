@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
+import { authLogger } from '../../services/logger.service';
 import { 
   RegisterDto, 
   LoginDto, 
@@ -19,9 +20,18 @@ export class AuthController {
   }
 
   register = async (req: Request, res: Response): Promise<void> => {
+    const correlationId = (req as any).correlationId;
+    const logger = authLogger.withCorrelationId(correlationId);
+    
     try {
       const registerData: RegisterDto = req.body;
-      console.log('Registration attempt:', registerData.email);
+      logger.info('User registration attempt', {
+        email: registerData.email,
+        firstName: registerData.firstName,
+        lastName: registerData.lastName,
+        hasPhone: !!registerData.phone
+      });
+      
       const result = await this.authService.register(registerData);
 
       res.status(201).json({
@@ -30,7 +40,16 @@ export class AuthController {
         data: result,
       });
     } catch (error) {
-      console.error('Registration error:', error);
+      logger.error('User registration failed', error as Error, {
+        email: req.body.email,
+        operation: 'register'
+      });
+      
+      logger.authEvent('registration_failed', {
+        email: req.body.email,
+        success: false,
+        reason: (error as Error).message
+      });
       res.status(400).json({
         success: false,
         message: error instanceof Error ? error.message : 'Registration failed',

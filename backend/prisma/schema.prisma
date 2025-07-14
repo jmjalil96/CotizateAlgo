@@ -10,7 +10,6 @@ datasource db {
 
 model Profile {
   id         String     @id @map("id")
-  userId     String     @unique @map("user_id")
   firstName  String     @map("first_name")
   lastName   String     @map("last_name")
   cedulaRuc  String     @unique @map("cedula_ruc")
@@ -21,6 +20,10 @@ model Profile {
   updatedAt  DateTime   @default(now()) @updatedAt @map("updated_at")
   assignedBy UserRole[] @relation("AssignedBy")
   userRoles  UserRole[]
+
+  brokerId         String?      @map("broker_id")
+  broker           Broker?      @relation(fields: [brokerId], references: [id])
+  sentInvitations  Invitation[] 
 
   @@map("profiles")
 }
@@ -71,4 +74,53 @@ model UserRole {
 
   @@id([userId, roleId])
   @@map("user_roles")
+}
+
+model Broker {
+  id          String       @id @default(uuid()) @map("id")
+  name        String       @unique
+  description String?
+  parentId    String?      @map("parent_id")
+  parent      Broker?      @relation("BrokerHierarchy", fields: [parentId], references: [id])
+  children    Broker[]     @relation("BrokerHierarchy")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  profiles    Profile[]    
+  invitations Invitation[]
+  clients     Client[]     
+
+  @@map("brokers")
+}
+
+model Invitation {
+  id           String    @id @default(uuid()) @map("id")
+  token        String    @unique
+  email        String    
+  brokerId     String    @map("broker_id")
+  invitedBy    String    @map("invited_by")
+  status       String    @default("pending")
+  expiresAt    DateTime  
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  broker       Broker    @relation(fields: [brokerId], references: [id], onDelete: Cascade)
+  invitedByUser Profile  @relation(fields: [invitedBy], references: [id], onDelete: Cascade)
+
+  @@map("invitations")
+}
+
+model Client {
+  id          String    @id @default(uuid()) @map("id")
+  brokerId    String    @map("broker_id")
+  firstName   String
+  lastName    String
+  cedulaRuc   String    @unique
+  email       String?   
+  phone       String?   
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  broker      Broker    @relation(fields: [brokerId], references: [id], onDelete: Cascade)
+
+  @@map("clients")
 }

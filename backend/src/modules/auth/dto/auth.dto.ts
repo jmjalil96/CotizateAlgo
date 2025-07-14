@@ -5,6 +5,7 @@ export interface RegisterDto {
   lastName: string;
   cedulaRuc: string;
   phone?: string;
+  brokerName?: string; // Optional: If provided, create a new broker with this name
 }
 
 export interface LoginDto {

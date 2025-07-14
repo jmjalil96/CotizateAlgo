@@ -1,5 +1,6 @@
 import { supabase, supabaseAdmin } from '../../config/supabase';
 import { prisma } from '../../config/database';
+import { authLogger } from '../../services/logger.service';
 import { 
   RegisterDto, 
   LoginDto, 
@@ -14,7 +15,7 @@ import {
 
 export class AuthService {
   async register(data: RegisterDto): Promise<AuthResponse> {
-    const { email, password, firstName, lastName, cedulaRuc, phone } = data;
+    const { email, password, firstName, lastName, cedulaRuc, phone, brokerName } = data;
 
     // Create user with Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -28,21 +29,44 @@ export class AuthService {
 
     try {
       // Create profile in our database
-      console.log('Creating profile for user:', authData.user.id);
-      console.log('Profile data:', { id: authData.user.id, firstName, lastName, cedulaRuc, phone });
+      authLogger.debug('Creating user profile in database', {
+        userId: authData.user.id,
+        email,
+        firstName,
+        lastName,
+        cedulaRuc,
+        hasPhone: !!phone
+      });
       
+      let brokerId: string | undefined;
+      if (brokerName) {
+        const newBroker = await prisma.broker.create({
+          data: { name: brokerName },
+        });
+        brokerId = newBroker.id;
+      }
+
       const profile = await prisma.profile.create({
         data: {
           id: authData.user.id,
-          userId: authData.user.id,
           firstName,
           lastName,
           cedulaRuc,
           phone,
+          brokerId, // Attach to new broker if created
         },
       });
       
-      console.log('Profile created successfully:', profile.id);
+      authLogger.info('User profile created successfully', {
+        userId: profile.id,
+        email: authData.user.email
+      });
+      
+      authLogger.authEvent('user_registered', {
+        userId: profile.id,
+        email: authData.user.email!,
+        success: true
+      });
 
       return {
         user: {
@@ -66,8 +90,17 @@ export class AuthService {
         },
       };
     } catch (dbError) {
-      console.error('Database error during profile creation:', dbError);
-      console.error('Error details:', JSON.stringify(dbError, null, 2));
+      authLogger.error('Database error during profile creation', dbError as Error, {
+        userId: authData.user.id,
+        email,
+        operation: 'profile_creation'
+      });
+      
+      authLogger.authEvent('user_registration_failed', {
+        email,
+        success: false,
+        reason: 'database_error'
+      });
       
       // If profile creation fails, delete the auth user
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
@@ -125,7 +158,7 @@ export class AuthService {
     };
   }
 
-  async logout(accessToken: string): Promise<void> {
+  async logout(_accessToken: string): Promise<void> {
     const { error } = await supabase.auth.signOut();
     if (error) {
       throw new Error('Failed to logout');
