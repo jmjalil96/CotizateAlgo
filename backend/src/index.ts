@@ -58,9 +58,11 @@ if (process.env.NODE_ENV !== 'production') {
 
 // API routes
 import authRoutes from './modules/auth/auth.routes';
+import rbacRoutes from './modules/rbac/rbac.routes';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/invitations', invitationRoutes);
+app.use('/api/rbac', rbacRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {

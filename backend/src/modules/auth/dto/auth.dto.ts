@@ -5,7 +5,8 @@ export interface RegisterDto {
   lastName: string;
   cedulaRuc: string;
   phone?: string;
-  brokerName?: string; // Optional: If provided, create a new broker with this name
+  brokerName: string; // Required: Create a new broker with this name
+  brokerDescription?: string; // Optional: Description for the new broker
 }
 
 export interface LoginDto {
@@ -18,7 +19,7 @@ export interface ForgotPasswordDto {
 }
 
 export interface ResetPasswordDto {
-  token: string;
+  token_hash: string;
   password: string;
 }
 
@@ -53,6 +54,17 @@ export interface AuthResponse {
     avatarUrl?: string;
     isActive: boolean;
   };
+  broker?: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+  roles: Array<{
+    id: string;
+    name: string;
+    description?: string;
+  }>;
+  permissions: string[];
   session: {
     access_token: string;
     refresh_token: string;

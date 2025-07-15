@@ -20,7 +20,8 @@ const authController = new AuthController();
  * @swagger
  * /api/auth/register:
  *   post:
- *     summary: Register a new user
+ *     summary: Register a new user and create their broker organization
+ *     description: Creates a new user account, broker organization, and assigns the user as broker_admin
  *     tags: [Authentication]
  *     requestBody:
  *       required: true
@@ -52,7 +53,8 @@ router.post('/register', validateRequest(registerSchema), authController.registe
  * @swagger
  * /api/auth/login:
  *   post:
- *     summary: Login user
+ *     summary: Login user and get complete authorization context
+ *     description: Authenticates user and returns profile, broker, roles, and permissions for complete app context
  *     tags: [Authentication]
  *     requestBody:
  *       required: true
@@ -81,7 +83,10 @@ router.post('/login', validateRequest(loginSchema), authController.login);
  * /api/auth/logout:
  *   post:
  *     summary: Logout user
+ *     description: Securely logout authenticated user and invalidate session
  *     tags: [Authentication]
+ *     security:
+ *       - BearerAuth: []
  *     responses:
  *       200:
  *         description: Logout successful
@@ -89,10 +94,18 @@ router.post('/login', validateRequest(loginSchema), authController.login);
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/SuccessMessage'
+ *       401:
+ *         $ref: '#/components/responses/Unauthorized'
+ *       400:
+ *         description: Logout failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
-router.post('/logout', authController.logout);
+router.post('/logout', authMiddleware, authController.logout);
 
 /**
  * @swagger
@@ -126,7 +139,8 @@ router.post('/forgot-password', validateRequest(forgotPasswordSchema), authContr
  * @swagger
  * /api/auth/reset-password:
  *   post:
- *     summary: Reset password with token
+ *     summary: Reset password with verified token
+ *     description: Securely reset user password using token_hash from password reset email
  *     tags: [Authentication]
  *     requestBody:
  *       required: true
@@ -190,22 +204,44 @@ router.post('/refresh', validateRequest(refreshTokenSchema), authController.refr
  * @swagger
  * /api/auth/me:
  *   get:
- *     summary: Get current user profile
+ *     summary: Get current user context with complete authorization data
+ *     description: Returns authenticated user's profile, broker, roles, and permissions for complete app context
  *     tags: [Authentication]
  *     security:
  *       - BearerAuth: []
  *     responses:
  *       200:
- *         description: User profile retrieved successfully
+ *         description: User context retrieved successfully
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 user:
- *                   $ref: '#/components/schemas/AuthResponse/properties/user'
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: User context retrieved successfully
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/AuthResponse/properties/user'
+ *                     broker:
+ *                       $ref: '#/components/schemas/AuthResponse/properties/broker'
+ *                     roles:
+ *                       $ref: '#/components/schemas/AuthResponse/properties/roles'
+ *                     permissions:
+ *                       $ref: '#/components/schemas/AuthResponse/properties/permissions'
  *       401:
  *         $ref: '#/components/responses/Unauthorized'
+ *       404:
+ *         description: User not found or deactivated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       500:
  *         $ref: '#/components/responses/InternalServerError'
  */
@@ -215,7 +251,8 @@ router.get('/me', authMiddleware, authController.me);
  * @swagger
  * /api/auth/change-password:
  *   put:
- *     summary: Change user password
+ *     summary: Change user password with enhanced security
+ *     description: Securely change authenticated user's password with current password verification, comprehensive audit logging, and security monitoring
  *     tags: [Authentication]
  *     security:
  *       - BearerAuth: []
@@ -245,7 +282,8 @@ router.put('/change-password', authMiddleware, validateRequest(changePasswordSch
  * @swagger
  * /api/auth/profile:
  *   put:
- *     summary: Update user profile
+ *     summary: Update user profile with enhanced validation
+ *     description: Securely update authenticated user's profile information with comprehensive audit logging and validation
  *     tags: [Authentication]
  *     security:
  *       - BearerAuth: []
@@ -278,7 +316,8 @@ router.put('/profile', authMiddleware, validateRequest(updateProfileSchema), aut
  * @swagger
  * /api/auth/change-email:
  *   put:
- *     summary: Change user email
+ *     summary: Change user email with enhanced security
+ *     description: Securely change authenticated user's email address with password verification, conflict detection, and comprehensive audit logging
  *     tags: [Authentication]
  *     security:
  *       - BearerAuth: []
@@ -298,9 +337,13 @@ router.put('/profile', authMiddleware, validateRequest(updateProfileSchema), aut
  *       400:
  *         $ref: '#/components/responses/BadRequest'
  *       401:
- *         $ref: '#/components/responses/Unauthorized'
+ *         description: Unauthorized - Invalid password or user not authenticated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       409:
- *         description: Email already in use
+ *         description: Email already in use by another account
  *         content:
  *           application/json:
  *             schema:

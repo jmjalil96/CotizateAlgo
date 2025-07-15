@@ -1,6 +1,7 @@
 export interface SendInvitationDto {
   email: string; // Invitee email
-  brokerId: string; // Existing broker to attach to
+  childBrokerName: string; // Name for the new child broker to be created
+  childBrokerDescription?: string; // Optional description for the new child broker
 }
 
 export interface AcceptInvitationDto {

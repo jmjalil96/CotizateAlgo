@@ -87,23 +87,22 @@ model Broker {
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
   profiles    Profile[]    
-  invitations Invitation[]
   clients     Client[]     
 
   @@map("brokers")
 }
 
 model Invitation {
-  id           String    @id @default(uuid()) @map("id")
-  token        String    @unique
-  email        String    
-  brokerId     String    @map("broker_id")
-  invitedBy    String    @map("invited_by")
-  status       String    @default("pending")
-  expiresAt    DateTime  
-  createdAt    DateTime  @default(now()) @map("created_at")
+  id                      String    @id @default(uuid()) @map("id")
+  token                   String    @unique
+  email                   String    
+  invitedBy               String    @map("invited_by")
+  status                  String    @default("pending")
+  expiresAt               DateTime  
+  childBrokerName         String    @map("child_broker_name")
+  childBrokerDescription  String?   @map("child_broker_description")
+  createdAt               DateTime  @default(now()) @map("created_at")
 
-  broker       Broker    @relation(fields: [brokerId], references: [id], onDelete: Cascade)
   invitedByUser Profile  @relation(fields: [invitedBy], references: [id], onDelete: Cascade)
 
   @@map("invitations")

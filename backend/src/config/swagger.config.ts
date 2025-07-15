@@ -33,7 +33,14 @@ const options: Options = {
         // Auth DTOs
         RegisterDto: {
           type: 'object',
-          required: ['email', 'password', 'firstName', 'lastName', 'cedulaRuc'],
+          required: [
+            'email',
+            'password',
+            'firstName',
+            'lastName',
+            'cedulaRuc',
+            'brokerName',
+          ],
           properties: {
             email: {
               type: 'string',
@@ -61,6 +68,17 @@ const options: Options = {
             phone: {
               type: 'string',
               example: '+593987654321',
+            },
+            brokerName: {
+              type: 'string',
+              example: 'Seguros ABC',
+              description: 'Name of the new broker organization to create',
+            },
+            brokerDescription: {
+              type: 'string',
+              example: 'Leading insurance broker in Ecuador',
+              description:
+                'Optional description for the new broker organization',
             },
           },
         },
@@ -92,16 +110,18 @@ const options: Options = {
         },
         ResetPasswordDto: {
           type: 'object',
-          required: ['token', 'password'],
+          required: ['token_hash', 'password'],
           properties: {
-            token: {
+            token_hash: {
               type: 'string',
-              example: 'reset-token-here',
+              example: 'pkce_abcd1234567890abcdef',
+              description: 'Reset token hash from the email link',
             },
             password: {
               type: 'string',
               minLength: 8,
               example: 'NewPassword123!',
+              description: 'New password (minimum 8 characters)',
             },
           },
         },
@@ -203,6 +223,56 @@ const options: Options = {
                   example: true,
                 },
               },
+            },
+            broker: {
+              type: 'object',
+              properties: {
+                id: {
+                  type: 'string',
+                  example: 'broker-uuid-here',
+                },
+                name: {
+                  type: 'string',
+                  example: 'Seguros ABC',
+                },
+                description: {
+                  type: 'string',
+                  example: 'Insurance broker company',
+                },
+              },
+            },
+            roles: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: {
+                    type: 'string',
+                    example: 'role-uuid-here',
+                  },
+                  name: {
+                    type: 'string',
+                    example: 'broker_admin',
+                  },
+                  description: {
+                    type: 'string',
+                    example: 'Broker administrator role',
+                  },
+                },
+              },
+            },
+            permissions: {
+              type: 'array',
+              items: {
+                type: 'string',
+                example: 'users:create',
+              },
+              example: [
+                'users:create',
+                'users:read',
+                'users:update',
+                'users:assign:roles',
+              ],
             },
             session: {
               type: 'object',
